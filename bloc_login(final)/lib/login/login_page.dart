@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:register/login/login_bloc.dart';
+import 'package:register/login/login_event.dart';
 
+import 'login_state.dart';
 import 'security_code_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -17,33 +19,37 @@ class _LoginPageState extends State<LoginPage> {
   final formKey = GlobalKey<FormState>();
   final passwordNode = FocusNode();
 
-  late LoginBloc bloc;
-
   String? email;
   String? password;
+
+  late LoginBloc bloc;
 
   @override
   void initState() {
     super.initState();
 
-    bloc = BlocProvider.of<LoginBloc>(context);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-
-    bloc.close();
+    bloc = BlocProvider.of(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<LoginBloc, LoginState>(
-      listenWhen: (previus, current) =>
-          (current is LoginSuccessState || current is LoginFailState),
-      listener: (_, state) {
-        if (state is LoginSuccessState) onLoginSuccess();
-        if (state is LoginFailState) onLoginFail();
+    return BlocListener(
+      bloc: bloc,
+      listener: (context, state) {
+        print('recebi um novo state');
+
+        if (state is LoginSuccessState) {
+          Navigator.of(context).pushNamed(SecurityCodePage.route);
+        }
+
+        if (state is LoginFailState) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.red,
+              content: Text('Credenciais inválidas'),
+            ),
+          );
+        }
       },
       child: Scaffold(
         resizeToAvoidBottomInset: false,
@@ -107,19 +113,22 @@ class _LoginPageState extends State<LoginPage> {
                   height: 50,
                   width: MediaQuery.of(context).size.width,
                   child: ElevatedButton(
-                    child: BlocBuilder<LoginBloc, LoginState>(
-                      builder: (_, state) =>
-                          (state is LoadingState && state.isLoading)
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
-                              : const Text(
-                                  'Continue',
-                                ),
-                    ),
+                    child: BlocBuilder(
+                        bloc: bloc,
+                        builder: (context, state) {
+                          if (state is LoadingState) {
+                            return const CircularProgressIndicator(
+                              color: Colors.white,
+                            );
+                          }
+
+                          return const Text(
+                            'Continue',
+                          );
+                        }),
                     onPressed: onContinuePressed,
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -128,25 +137,16 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  onContinuePressed() {
+  onContinuePressed() async {
     if (formKey.currentState?.validate() ?? false) {
       formKey.currentState?.save();
 
-      // Add bloc event
-      bloc.add(DoLoginEvent(email!, password!));
+      bloc.add(
+        DoLoginEvent(
+          email: email!,
+          password: password!,
+        ),
+      );
     }
-  }
-
-  onLoginSuccess() {
-    Navigator.of(context).pushNamed(SecurityCodePage.route);
-  }
-
-  onLoginFail() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.red,
-        content: Text('Credenciais inválidas'),
-      ),
-    );
   }
 }

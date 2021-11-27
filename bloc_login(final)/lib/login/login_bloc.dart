@@ -1,38 +1,20 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
-
-abstract class LoginEvent {}
-
-class DoLoginEvent extends LoginEvent {
-  final String email;
-  final String password;
-
-  DoLoginEvent(this.email, this.password);
-}
-
-abstract class LoginState {}
-
-class LoginIdleState extends LoginState {}
-
-class LoadingState extends LoginState {
-  final bool isLoading;
-
-  LoadingState(this.isLoading);
-}
-
-class LoginSuccessState extends LoginState {}
-
-class LoginFailState extends LoginState {}
+import 'package:bloc/bloc.dart';
+import 'package:register/login/login_event.dart';
+import 'package:register/login/login_state.dart';
 
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
-  LoginBloc() : super(LoginIdleState()) {
+  LoginBloc() : super(LoginInitialState()) {
     on<DoLoginEvent>((event, emit) async {
-      emit(LoadingState(true));
+      print('Bloc: recebi um evento do tipo DoLogin');
+
+      emit(LoadingState());
 
       await Future.delayed(const Duration(seconds: 2));
-
-      emit(LoginSuccessState());
-
-      emit(LoadingState(false));
+      if (event.email == 'jorel@gmail.com' && event.password == '1234') {
+        emit(LoginSuccessState());
+      } else {
+        emit(LoginFailState());
+      }
     });
   }
 }
